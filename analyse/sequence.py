@@ -25,7 +25,6 @@ def read_fasta(fasta):
                 strands_dataset[current_label] = ''
         
             else: strands_dataset[current_label] += item
-
     
     return strands_dataset
 
@@ -41,3 +40,16 @@ def calculate_gc_content(strand):
     )
 
     return (all_nucleotides['G'] + all_nucleotides['C']) / total * 100 if total else 0
+
+def calculate_hamming_distance(strand1, strand2):
+
+    distance = 0
+
+    if len(strand1) != len(strand2):
+      raise ValueError(f"Sequences must be equal length: {len(strand1)} vs {len(strand2)}")
+    
+    for nucleotide1, nucleotide2 in zip(strand1, strand2):
+        if nucleotide1 != nucleotide2:
+            distance += 1
+
+    return distance
