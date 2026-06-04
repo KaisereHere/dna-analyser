@@ -1,9 +1,13 @@
-from analyse.sequence import transcribe, count_nucleotides, reversed_complement, read_fasta, calculate_gc_content, calculate_hamming_distance
+from visualize.plots import plot_gc_profile 
 from tools.helpers import read_file
+from analyse.sequence import read_fasta, open_read_frame
 
 def main():
-    strand1, strand2 = read_file('data/rosalind_hamm.txt').split('\n')[:2]
-    print(calculate_hamming_distance(strand1, strand2))
+    data = read_file('data/rosalind_orf.txt')
+    fasta = list(read_fasta(data).values())[0]
+    fasta = 'ATGRER'
+    protein = open_read_frame(fasta)
+    print(protein)
 
 
 if __name__ == "__main__":
