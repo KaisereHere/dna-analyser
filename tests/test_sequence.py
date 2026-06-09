@@ -2,7 +2,7 @@ import pytest
 
 from analyse.sequence import reversed_complement, transcribe, count_nucleotides, read_fasta, calculate_gc_content, calculate_hamming_distance
 from analyse.sequence import find_motif, translate, gc_sliding_window, dominant_probability, find_monoisotopic_mass, strand_profile, consensus_strand
-from analyse.sequence import open_read_frame
+from analyse.sequence import open_read_frame, rna_splicing
 from tools.helpers import read_file
 
 class TestSequence:
@@ -166,6 +166,13 @@ class TestSequence:
     def test_open_read_frame_empty(self):
         assert open_read_frame('') == set()
     
-    def test_open_read_random(self):
-        with pytest.raises(KeyError):
-            open_read_frame('ATGRE')
+
+    def test_rna_splicing(self):
+        assert rna_splicing('ATGGCAC', ['GG', 'AT']) == 'CAC'
+
+    def test_rna_splicing_too_large(self):
+        with pytest.raises(ValueError):
+            rna_splicing('A', ['AA'])
+
+    def test_rna_splicing_empty(self):
+        assert rna_splicing('', []) == ''

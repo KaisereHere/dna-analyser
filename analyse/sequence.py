@@ -237,3 +237,13 @@ def open_read_frame(original_strand):
             
 
     return set(proteins)
+
+
+def rna_splicing(rna_strand, introns):
+
+    for intron in introns:
+        if len(intron) > len(rna_strand):
+            raise ValueError('Intron can not be larger than a strand')
+        rna_strand = rna_strand.replace(intron, '')
+
+    return rna_strand
