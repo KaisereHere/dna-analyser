@@ -1,15 +1,16 @@
-from visualize.plots import plot_gc_profile 
+from analyse.sequence import read_fasta, spliced_motif, shared_spliced_motif, edit_distance
 from tools.helpers import read_file
-from analyse.sequence import read_fasta, translate, transcribe, rna_splicing
+
 
 def main():
-    raw_strand_data = read_file('data/rosalind_spl_or.txt')
-    data = read_file('data/rosalind_splc.txt')
-    raw_strand = list(read_fasta(raw_strand_data).values())[0]
-    introns = read_fasta(data).values()
-    strand = rna_splicing(raw_strand, introns)
+    data = read_file('data/rosalind_edit.txt')
 
-    print(translate(transcribe(strand)))
+    fasta = list(read_fasta(data).values())
 
+    res = edit_distance(fasta[0], fasta[1])
+
+    print(res)
+    #fasta = list(read_fasta(data).values())
+    #print(shared_spliced_motif(fasta[0], fasta[1]))
 if __name__ == "__main__":
     main()

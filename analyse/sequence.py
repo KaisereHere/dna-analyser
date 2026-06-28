@@ -1,4 +1,6 @@
 from re import finditer
+import math
+from functools import lru_cache
 
 # RNA codon to amino acid table
 rna_codon_table = {
@@ -50,6 +52,13 @@ monoisotopic_mass_table = {
 }
 
 def count_nucleotides(strand):
+
+    '''Calculates the amount of the nucleotides in a DNA sequence.
+
+    Args: strand(str): DNA sequence 
+
+    Return: Dict with amounts of the nucleotides {A: int, C: int, G: int, T: int} 
+    '''
     counted = {'A':0, 'C':0, 'G':0, 'T':0}
     for nucleotide in strand.upper():
         if nucleotide in counted:
@@ -57,13 +66,32 @@ def count_nucleotides(strand):
     return counted
 
 def transcribe(strand):
+    '''Simulates transcription of a DNA sequence into a RNA sequence
+
+    Args: strand(str): DNA sequence 
+
+    Return: (str) RNA sequence 
+    '''
     return(strand.upper().replace("T", "U"))
 
 def reversed_complement(strand):
+    '''Computes a complementary sequence for a DNA single strand
+    
+    Args: strand(str): DNA sequence 
+
+    Return: (str) DNA sequence 
+     
+    '''
     return strand[::-1].upper().replace("A", "t").replace("T", "a").replace("G","c").replace("C", "g").upper() 
 
 def read_fasta(fasta):
+    '''Converts the given fasta content into a python dict 
 
+    Args: fasta: fasta content >name
+                               GGACT
+
+    Return: dict {'name': 'GGACT'} with the named sequences imported from a fasta content  
+    '''
     strands_dataset = {}
 
     current_label = ''
@@ -80,6 +108,12 @@ def read_fasta(fasta):
 
 def calculate_gc_content(strand):
 
+    '''Caclulates the percentage of G and C nucleotides in a DNA sequence
+
+        Args: strand(str): DNA sequence 
+
+        Return: (float) Percentage 
+    '''
     all_nucleotides = count_nucleotides(strand)
 
     total = (
@@ -92,7 +126,14 @@ def calculate_gc_content(strand):
     return (all_nucleotides['G'] + all_nucleotides['C']) / total * 100 if total else 0
 
 def calculate_hamming_distance(strand1, strand2):
+    '''Calculates hamming distance between two DNA sequences 
 
+        Args: strand1(str): DNA sequence , strand2(str): another DNA sequence 
+
+        Return: (int) distance 
+
+        Raise: ValueError if sequences have not the same length 
+    '''
     distance = 0
 
     if len(strand1) != len(strand2):
@@ -105,6 +146,12 @@ def calculate_hamming_distance(strand1, strand2):
     return distance
 
 def find_motif(strand, motif):
+    '''Finds all places where the given motif occurs
+
+        Args: strand(str): DNA sequence , motif(str): another DNA sequence 
+
+        Return: list with indices (starts with 1 - string [1] = s)  
+    '''
     motifs = []
     if motif != '' and strand != '':
         for nucleotide_number in range(len(strand)):
@@ -113,6 +160,14 @@ def find_motif(strand, motif):
     return motifs
 
 def translate(strand):
+    '''Simulates translation of a DNA sequence into a amino acid sequence (protein)
+
+        Args: strand(str): DNA sequence 
+
+        Return: (str) amino acid sequence (protein) 
+
+        Raise: ValueError if the unknown codon is found 
+    '''
     protein = []
     strand = strand.strip().upper()
 
@@ -132,6 +187,14 @@ def translate(strand):
     
 def gc_sliding_window(sequence, window_size):
 
+    '''Examines the local GC contents on the subsequence of the given DNA or RNA sequence 
+    
+        Args: sequence(str): DNA or RNA sequence, window_size(int): the size of the subsequences 
+
+        Return: list with GC percentages of GC content
+
+        Raise: IndexError if the window size is not apropriate 
+    '''
     gc_list = []
 
     if window_size > len(sequence) or window_size <= 0:
@@ -144,6 +207,17 @@ def gc_sliding_window(sequence, window_size):
 
 def dominant_probability(dominant_homozygous, heterozygous, recessive_homozygous):
 
+    '''Calculates the probability of a dominant species' birth in the given population
+
+        Args: dominant_homozygous(int):  amount of dominant homozygous 
+              heterozygous(int):         amount of heterozygous 
+              recessive homozygous(int): amount of recessive homozygous 
+
+        Return: (float) probability
+
+        Raise: ValueError if one of the given arguments is negative
+               TypeError  if one of the given arguments is not an integer
+    '''
     if dominant_homozygous < 0 or heterozygous < 0 or recessive_homozygous < 0:
         raise ValueError("A size of a population can not be negative")
     
@@ -164,13 +238,20 @@ def dominant_probability(dominant_homozygous, heterozygous, recessive_homozygous
     
     
 def find_monoisotopic_mass(sequence):
+    """Calculates monoisotopic mass of the given protein 
 
+        Args: sequence(str): protein 
+
+        Return: (float) mass 
+
+        Raise: ValueError if an unknown amino acid found
+    """
     mass = 0
 
     for amino_acid in sequence:
 
         if amino_acid not in monoisotopic_mass_table:
-            raise(ValueError(f'"{amino_acid}" - such protein name is not assigned'))
+            raise(ValueError(f'"{amino_acid}" - such amino acid name is not assigned'))
         
         mass += monoisotopic_mass_table[amino_acid]
 
@@ -178,6 +259,16 @@ def find_monoisotopic_mass(sequence):
 
 
 def strand_profile(strands):
+
+    """Builds profile of DNA strand based on comparing its differently mutated versions. Counts the occurrence of each nucleotide
+        on the corresponding location in the given sequences.
+
+        Args: strands(custom fasta dict): different versions of DNA 
+
+        Return: (custom dict) profile 
+
+        Raise: ValueError if list is empty, if strands have not the same length or if a nucleotide is found which does not exist 
+    """
 
     if not strands:
         raise ValueError("The given list can not be empty")
@@ -202,6 +293,12 @@ def strand_profile(strands):
 
 
 def consensus_strand(profile):
+    """Finds out the most probable DNA sequence (consenus) by analysing it's profile
+
+        Args: profile(custom dict): profile of a DNA strand 
+
+        Return: (str)consensus 
+    """
     strand_length = len(profile['A']) 
 
     if strand_length == 0:
@@ -216,6 +313,12 @@ def consensus_strand(profile):
  
 def open_read_frame(original_strand):
     
+    '''Finds all possible proteins given on both strands DNA sequence
+
+        Args: original_strand(str): DNA strand 
+
+        Return: (set) all possible amiNo acid sequences 
+    '''
     proteins = []
     complement_strand = transcribe(reversed_complement(original_strand))
     original_strand = transcribe(original_strand)
@@ -241,9 +344,186 @@ def open_read_frame(original_strand):
 
 def rna_splicing(rna_strand, introns):
 
+    '''Removes introns from RNA strand
+
+        Args: rna_strand(str): RNA sequence , introns(list with str): list with introns 
+
+        Return: (str) spliced RNA sequence 
+
+        Raise: ValueError if intron is longer than a strand
+    '''
     for intron in introns:
         if len(intron) > len(rna_strand):
             raise ValueError('Intron can not be larger than a strand')
         rna_strand = rna_strand.replace(intron, '')
 
     return rna_strand
+
+def dominant_offspring(AA_AA, AA_Aa, AA_aa, Aa_Aa, Aa_aa, aa_aa):
+    """Calculates an expected amount of dominant offsprings based on the given paits
+
+        Args: int: AA_AA: amount of dominant homozygous pairs, AA_Aa: dominant homozygous and heterozygous, Aa_Aa: heterozygous
+                   Aa_aa: heterozygous and recessive homozygous, aa_aa: recessive homozygous
+
+        Return: (int) Amount of offsprings 
+    """
+    AA_AA_assumption = 2
+    AA_Aa_assumption = 2
+    AA_aa_assumption = 2
+    Aa_Aa_assumption = 6/4
+    Aa_aa_assumption = 1
+    aa_aa_assumption = 0
+
+    return (AA_AA_assumption*AA_AA + AA_Aa_assumption*AA_Aa + AA_aa_assumption*AA_aa +
+            Aa_Aa_assumption*Aa_Aa + Aa_aa_assumption*Aa_aa + aa_aa_assumption*aa_aa)
+
+def is_substring(sequence_dict, substring):
+    """Checks whether the every DNA sequence in a dict consists the given substring
+
+        Args: sequence_dict(custom fasta dict): DNA sequences, substring(str): substring
+
+        Return: (bool) True or False 
+    """
+    for sequence in sequence_dict.values():
+        if substring not in sequence:
+            return False
+
+    return True    
+
+def find_shared_motif(sequence_dict): 
+    '''Finds a motif which occurs in every DNA sequence
+
+        Args: sequence_dict(custom fasta dict): DNA sequences 
+
+        Return: (str) motif 
+
+        Raise: ValueError if the given dictionary is empty
+    '''
+    if len(sequence_dict) == 0:
+        raise ValueError("The dictionary can not be empty")
+    
+    shortest_item = min(sequence_dict.values(), key=lambda x:len(x))
+
+    for shift in range(len(shortest_item), -1, -1):
+        for index in range(len(shortest_item)-shift):
+
+            substring = shortest_item[index:index + shift + 1]
+
+            if is_substring(sequence_dict, substring):
+                return substring
+            
+    return ''
+            
+def independent_alleles(generation, count_heterozygous):
+    '''Calculates the birth probability of a dominantly phenotypical expressed offspring in the n-generation in a k-size population
+        (Mendelian segregation law) 
+
+        Args: generation(int): number of generetion, count_heterozygous(int): size of a heterozygous popuation 
+
+        Return: (float) probability 
+    '''
+    tries = pow(2, generation)
+    probability = 0
+
+    for count in range(count_heterozygous, tries+1):
+        probability += (math.factorial(tries) / (math.factorial(count) * math.factorial(tries-count)))  * ((pow(1/4, count) * pow(3/4, tries-count)))
+
+    return probability
+
+def spliced_motif(sequence, subsequence):
+
+    '''Checks whether the given sequence consists the subsequence after deletion of introns.
+
+        Args: sequence(str): DNA sequence, subsequence(str):another DNA sequence  
+
+        Return: (list) of occurence indices 
+
+        Raise: ValueError if the given subsequence is empty
+    '''
+    if len(subsequence) == 0:
+        raise ValueError("The subsequence can not be empty")
+
+    indices = []
+
+    subsequence_index = 0
+
+    for index in range(len(sequence)):
+        
+        
+        if sequence[index] == subsequence[subsequence_index]:
+            indices.append(index)
+            subsequence_index += 1
+
+            if len(subsequence) == subsequence_index:
+                return indices
+
+    return []
+    
+
+def shared_spliced_motif(sequence1, sequence2):
+
+    """Uses LCS to find the longest subsequence in the 2 DNA sequences 
+        Complexity: O(n×m)
+
+        Args: sequence1(str): DNA sequence, sequence2(str):another DNA sequence 
+
+        Return: (str) subsequence 
+
+    """
+    longest_subsequences = [[0 for _ in range(len(sequence2) + 1)] for _ in range(len(sequence1) + 1)]
+    res = ''
+    for index1 in range(len(sequence1)-1, -1, -1):
+        for index2 in range(len(sequence2)-1, -1, -1):
+
+            if sequence1[index1] == sequence2[index2]:
+                longest_subsequences[index1][index2] = longest_subsequences[index1+1][index2+1] + 1
+            else:
+                longest_subsequences[index1][index2] = max(longest_subsequences[index1+1][index2], longest_subsequences[index1][index2+1])
+
+    i, j = 0, 0
+
+    while i < len(sequence1) and j < len(sequence2):
+        if sequence1[i] == sequence2[j]:
+            res += sequence1[i]
+            i += 1
+            j += 1
+
+        else:
+            if longest_subsequences[i+1][j] > longest_subsequences[i][j+1]:
+                i += 1
+            else:
+                j += 1
+
+
+    return res
+    
+def edit_distance(sequence1, sequence2):
+
+    """Uses Lichtenshtein's algorithm to find the minimum number of single-character edits required to transform one string into another.
+        Comlpexity: O(n×m)
+
+        Args: sequence1(str): DNA sequence, sequence2(str):another DNA sequence 
+
+        Return: (int) the minimum number 
+    """
+    shortest_path = [[0 for _ in range(len(sequence2) + 1)] for _ in range(len(sequence1) + 1)]
+
+    length1 = len(sequence1)
+    length2 = len(sequence2)
+
+    for index1 in range(length1):
+        shortest_path[index1][length2] = length1 - index1
+    
+    for index2 in range(length2):
+        shortest_path[length1][index2] = length2 - index2
+
+    for index1 in range(length1-1, -1, -1):
+        for index2 in range(length2-1, -1, -1):
+
+            if sequence1[index1] == sequence2[index2]:
+                shortest_path[index1][index2] = shortest_path[index1+1][index2+1]
+
+            else:
+                shortest_path[index1][index2] = min(shortest_path[index1+1][index2], shortest_path[index1][index2+1], shortest_path[index1+1][index2+1]) + 1 
+        
+    return shortest_path[0][0] 

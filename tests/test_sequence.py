@@ -2,7 +2,10 @@ import pytest
 
 from analyse.sequence import reversed_complement, transcribe, count_nucleotides, read_fasta, calculate_gc_content, calculate_hamming_distance
 from analyse.sequence import find_motif, translate, gc_sliding_window, dominant_probability, find_monoisotopic_mass, strand_profile, consensus_strand
-from analyse.sequence import open_read_frame, rna_splicing
+from analyse.sequence import open_read_frame, rna_splicing, dominant_offspring, find_shared_motif, independent_alleles
+
+from analyse.sequence import spliced_motif, shared_spliced_motif, edit_distance
+
 from tools.helpers import read_file
 
 class TestSequence:
@@ -176,3 +179,75 @@ class TestSequence:
 
     def test_rna_splicing_empty(self):
         assert rna_splicing('', []) == ''
+
+    def test_dominant_offspring(self):
+        assert dominant_offspring(1, 0, 0, 1, 0, 1) == 3.5
+
+    def test_find_shared_motif(self):
+        test_data = {'Rosalind_1': 'GATTACA', 'Rosalind_2': 'TAGACCA', 'Rosalind_3': 'ATACA'}
+        result = find_shared_motif(test_data)
+        assert result in ("AC", "CA", "TA")
+
+    def test_find_shared_motif_empty(self):
+        with pytest.raises(ValueError):
+            find_shared_motif({})
+
+    def test_find_shared_motif_no_shared(self):
+        assert find_shared_motif({'d': 'AC', 'b': "GT"}) == ''
+
+    def test_independent_alleles(self):
+        assert abs(independent_alleles(2, 1)-0.684) <= 0.001
+
+    def test_independent_alleles_zeros(self):
+        assert independent_alleles(0, 0) == 1
+
+    def test_independent_alleles_more_expected(self):
+        assert independent_alleles(1, 5) == 0 
+
+    def test_spliced_motif(self):
+        sequence = 'ACGTACGTGACG'
+        subsequence = 'GTA' 
+        indices = spliced_motif(sequence, subsequence)
+
+        for index, value in enumerate(indices):
+            assert subsequence[index] == sequence[value] 
+
+    def test_spliced_motif_empty_subsequence(self):
+        with pytest.raises(ValueError):
+            spliced_motif('GGA', '')
+
+    def test_spliced_motif_not_found(self):
+        assert spliced_motif("AGG", "T") == []
+
+    def test_find_shared_motif_border(self):
+        assert find_shared_motif({"a":"AGGG","b": "CCCA"}) == "A"
+
+    def test_shared_spliced_motif(self):
+        assert ''.join(shared_spliced_motif('ACACTGTGA', 'AACCTTGG')) in('AACTGG', 'ACCTGG') 
+
+    def test_shared_spliced_motif_similar(self):
+        assert ''.join(shared_spliced_motif('AA', 'AA')) == 'AA'   
+
+    def test_shared_spliced_motif_same_letters(self):
+        assert shared_spliced_motif("AAAA", "AA") == 'AA'
+
+    def test_shared_spliced_motif_no_match(self):
+        assert shared_spliced_motif('AAA', 'BB') == ''
+
+    def test_shared_spliced_motif_empty(self):
+        assert shared_spliced_motif('', 'AAA') == ''
+
+    def test_edit_distance(self):
+        assert edit_distance('PLEASANTLY', "MEANLY") == 5
+        
+    def test_edit_distance_empty(self):
+        assert edit_distance('', '') == 0
+
+    def test_edit_distance_same_strings(self):
+        assert edit_distance('AA', 'AA') == 0 
+
+    def test_edit_distance_second_larger(self):
+        assert edit_distance('A', 'B') == 1
+
+    def test_edit_distance_three(self):
+        assert edit_distance('', 'ABC') == 3
