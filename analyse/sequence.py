@@ -1,6 +1,5 @@
-from re import finditer
 import math
-from functools import lru_cache
+
 
 # RNA codon to amino acid table
 rna_codon_table = {
@@ -57,7 +56,7 @@ def count_nucleotides(strand):
 
     Args: strand(str): DNA sequence 
 
-    Return: Dict with amounts of the nucleotides {A: int, C: int, G: int, T: int} 
+    s: Dict with amounts of the nucleotides {A: int, C: int, G: int, T: int} 
     '''
     counted = {'A':0, 'C':0, 'G':0, 'T':0}
     for nucleotide in strand.upper():
@@ -70,16 +69,16 @@ def transcribe(strand):
 
     Args: strand(str): DNA sequence 
 
-    Return: (str) RNA sequence 
+    Returns: (str) RNA sequence 
     '''
     return(strand.upper().replace("T", "U"))
 
 def reversed_complement(strand):
-    '''Computes a complementary sequence for a DNA single strand
+    '''Computes a reversed complementary sequence for a DNA single strand
     
     Args: strand(str): DNA sequence 
 
-    Return: (str) DNA sequence 
+    Returns: (str) DNA sequence 
      
     '''
     return strand[::-1].upper().replace("A", "t").replace("T", "a").replace("G","c").replace("C", "g").upper() 
@@ -90,7 +89,7 @@ def read_fasta(fasta):
     Args: fasta: fasta content >name
                                GGACT
 
-    Return: dict {'name': 'GGACT'} with the named sequences imported from a fasta content  
+    Returns: dict {'name': 'GGACT'} with the named sequences imported from a fasta content  
     '''
     strands_dataset = {}
 
@@ -108,11 +107,11 @@ def read_fasta(fasta):
 
 def calculate_gc_content(strand):
 
-    '''Caclulates the percentage of G and C nucleotides in a DNA sequence
+    '''Calculates the percentage of G and C nucleotides in a DNA sequence
 
         Args: strand(str): DNA sequence 
 
-        Return: (float) Percentage 
+        Returns: (float) Percentage 
     '''
     all_nucleotides = count_nucleotides(strand)
 
@@ -130,7 +129,7 @@ def calculate_hamming_distance(strand1, strand2):
 
         Args: strand1(str): DNA sequence , strand2(str): another DNA sequence 
 
-        Return: (int) distance 
+        Returns: (int) distance 
 
         Raise: ValueError if sequences have not the same length 
     '''
@@ -150,7 +149,7 @@ def find_motif(strand, motif):
 
         Args: strand(str): DNA sequence , motif(str): another DNA sequence 
 
-        Return: list with indices (starts with 1 - string [1] = s)  
+        Returns: list with indices (starts with 1 - string [1] = s)  
     '''
     motifs = []
     if motif != '' and strand != '':
@@ -160,11 +159,11 @@ def find_motif(strand, motif):
     return motifs
 
 def translate(strand):
-    '''Simulates translation of a DNA sequence into a amino acid sequence (protein)
+    '''Simulates translation of a RNA sequence into an amino acid sequence (protein)
 
-        Args: strand(str): DNA sequence 
+        Args: strand(str): RNA sequence 
 
-        Return: (str) amino acid sequence (protein) 
+        Returns: (str) amino acid sequence (protein) 
 
         Raise: ValueError if the unknown codon is found 
     '''
@@ -191,9 +190,9 @@ def gc_sliding_window(sequence, window_size):
     
         Args: sequence(str): DNA or RNA sequence, window_size(int): the size of the subsequences 
 
-        Return: list with GC percentages of GC content
+        Returns: list with GC percentages of GC content
 
-        Raise: IndexError if the window size is not apropriate 
+        Raise: IndexError if the window size is not appropriate 
     '''
     gc_list = []
 
@@ -207,13 +206,13 @@ def gc_sliding_window(sequence, window_size):
 
 def dominant_probability(dominant_homozygous, heterozygous, recessive_homozygous):
 
-    '''Calculates the probability of a dominant species' birth in the given population
+    '''Calculates the probability that an offspring exhibits the dominant phenotype
 
         Args: dominant_homozygous(int):  amount of dominant homozygous 
               heterozygous(int):         amount of heterozygous 
               recessive homozygous(int): amount of recessive homozygous 
 
-        Return: (float) probability
+        Returns: (float) probability
 
         Raise: ValueError if one of the given arguments is negative
                TypeError  if one of the given arguments is not an integer
@@ -242,7 +241,7 @@ def find_monoisotopic_mass(sequence):
 
         Args: sequence(str): protein 
 
-        Return: (float) mass 
+        Returns: (float) mass 
 
         Raise: ValueError if an unknown amino acid found
     """
@@ -265,7 +264,7 @@ def strand_profile(strands):
 
         Args: strands(custom fasta dict): different versions of DNA 
 
-        Return: (custom dict) profile 
+        Returns: (custom dict) profile 
 
         Raise: ValueError if list is empty, if strands have not the same length or if a nucleotide is found which does not exist 
     """
@@ -297,7 +296,7 @@ def consensus_strand(profile):
 
         Args: profile(custom dict): profile of a DNA strand 
 
-        Return: (str)consensus 
+        Returns: (str)consensus 
     """
     strand_length = len(profile['A']) 
 
@@ -317,7 +316,7 @@ def open_read_frame(original_strand):
 
         Args: original_strand(str): DNA strand 
 
-        Return: (set) all possible amiNo acid sequences 
+        Returns: (set) all possible amino acid sequences 
     '''
     proteins = []
     complement_strand = transcribe(reversed_complement(original_strand))
@@ -348,7 +347,7 @@ def rna_splicing(rna_strand, introns):
 
         Args: rna_strand(str): RNA sequence , introns(list with str): list with introns 
 
-        Return: (str) spliced RNA sequence 
+        Returns: (str) spliced RNA sequence 
 
         Raise: ValueError if intron is longer than a strand
     '''
@@ -360,12 +359,12 @@ def rna_splicing(rna_strand, introns):
     return rna_strand
 
 def dominant_offspring(AA_AA, AA_Aa, AA_aa, Aa_Aa, Aa_aa, aa_aa):
-    """Calculates an expected amount of dominant offsprings based on the given paits
+    """Calculates an expected amount of dominant offsprings based on the given pairs
 
         Args: int: AA_AA: amount of dominant homozygous pairs, AA_Aa: dominant homozygous and heterozygous, Aa_Aa: heterozygous
                    Aa_aa: heterozygous and recessive homozygous, aa_aa: recessive homozygous
 
-        Return: (int) Amount of offsprings 
+        Returns: (int) Amount of offsprings 
     """
     AA_AA_assumption = 2
     AA_Aa_assumption = 2
@@ -382,7 +381,7 @@ def is_substring(sequence_dict, substring):
 
         Args: sequence_dict(custom fasta dict): DNA sequences, substring(str): substring
 
-        Return: (bool) True or False 
+        Returns: (bool) True or False 
     """
     for sequence in sequence_dict.values():
         if substring not in sequence:
@@ -395,7 +394,7 @@ def find_shared_motif(sequence_dict):
 
         Args: sequence_dict(custom fasta dict): DNA sequences 
 
-        Return: (str) motif 
+        Returns: (str) motif 
 
         Raise: ValueError if the given dictionary is empty
     '''
@@ -420,7 +419,7 @@ def independent_alleles(generation, count_heterozygous):
 
         Args: generation(int): number of generetion, count_heterozygous(int): size of a heterozygous popuation 
 
-        Return: (float) probability 
+        Returns: (float) probability 
     '''
     tries = pow(2, generation)
     probability = 0
@@ -436,7 +435,7 @@ def spliced_motif(sequence, subsequence):
 
         Args: sequence(str): DNA sequence, subsequence(str):another DNA sequence  
 
-        Return: (list) of occurence indices 
+        Returns: (list) of occurrence indices 
 
         Raise: ValueError if the given subsequence is empty
     '''
@@ -467,7 +466,7 @@ def shared_spliced_motif(sequence1, sequence2):
 
         Args: sequence1(str): DNA sequence, sequence2(str):another DNA sequence 
 
-        Return: (str) subsequence 
+        Returns: (str) subsequence 
 
     """
     longest_subsequences = [[0 for _ in range(len(sequence2) + 1)] for _ in range(len(sequence1) + 1)]
@@ -499,12 +498,12 @@ def shared_spliced_motif(sequence1, sequence2):
     
 def edit_distance(sequence1, sequence2):
 
-    """Uses Lichtenshtein's algorithm to find the minimum number of single-character edits required to transform one string into another.
-        Comlpexity: O(n×m)
+    """Uses Levenshtein's algorithm to find the minimum number of single-character edits required to transform one string into another.
+        Complexity: O(n×m)
 
         Args: sequence1(str): DNA sequence, sequence2(str):another DNA sequence 
 
-        Return: (int) the minimum number 
+        Returns: (int) the minimum number 
     """
     shortest_path = [[0 for _ in range(len(sequence2) + 1)] for _ in range(len(sequence1) + 1)]
 
