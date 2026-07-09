@@ -1,16 +1,19 @@
-from analyse.sequence import read_fasta, spliced_motif, shared_spliced_motif, edit_distance
+from analyse.sequence import read_fasta, find_components
 from tools.helpers import read_file
-
+import graphviz
 
 def main():
-    data = read_file('data/rosalind_edit.txt')
+    data = read_file('data/rosalind_tree.txt').split('\n')
+    
+    edges = []
+    n_amount = data[0]
+    for elem in data[1:]:
+        edges.append([int(n) for n in elem.split(' ')])
 
-    fasta = list(read_fasta(data).values())
 
-    res = edit_distance(fasta[0], fasta[1])
+    ns = [n for n in range(1, int(n_amount)+1)]
 
-    print(res)
-    #fasta = list(read_fasta(data).values())
-    #print(shared_spliced_motif(fasta[0], fasta[1]))
+    print(len(find_components(ns, edges))-1)
+
 if __name__ == "__main__":
     main()

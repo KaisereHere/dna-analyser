@@ -2,10 +2,9 @@ import pytest
 
 from analyse.sequence import reversed_complement, transcribe, count_nucleotides, read_fasta, calculate_gc_content, calculate_hamming_distance
 from analyse.sequence import find_motif, translate, gc_sliding_window, dominant_probability, find_monoisotopic_mass, strand_profile, consensus_strand
-from analyse.sequence import open_read_frame, rna_splicing, dominant_offspring, find_shared_motif, independent_alleles
+from analyse.sequence import open_read_frame, rna_splicing, dominant_offspring, find_shared_motif, independent_alleles, find_component
 
-from analyse.sequence import spliced_motif, shared_spliced_motif, edit_distance
-
+from analyse.sequence import spliced_motif, shared_spliced_motif, edit_distance, overlapping_sequences, enumerate_k_mers, build_adjacency_list
 from tools.helpers import read_file
 
 class TestSequence:
@@ -251,3 +250,60 @@ class TestSequence:
 
     def test_edit_distance_three(self):
         assert edit_distance('', 'ABC') == 3
+
+    def test_overlapping_sequences(self):
+        sequences = {
+            'Rosalind_0498': 'AAATAAA',
+            'Rosalind_2391': 'AAATTTT',
+            'Rosalind_2323': 'TTTTCCC',
+            'Rosalind_0442': 'AAATCCC',
+            'Rosalind_5013': 'GGGTGGG'
+        }
+
+        ordered = [('Rosalind_0498', 'Rosalind_2391'),
+                   ('Rosalind_0498', 'Rosalind_0442'),
+                   ('Rosalind_2391', 'Rosalind_2323')
+        ]
+
+       
+        assert overlapping_sequences(sequences) == set(ordered)
+    
+
+    def test_overlapping_sequences_empty(self):
+        assert overlapping_sequences({}) == set()
+
+     
+    def test_overlapping_sequences_k_large(self):
+        with pytest.raises(ValueError):
+            overlapping_sequences({'a': 'AAA'}, 5) 
+
+    def test_enumerate_k_mers(self):
+        answer = [
+            'AA',
+            'AC',
+            'AG',
+            'AT',
+            'CA',
+            'CC',
+            'CG',
+            'CT',
+            'GA',
+            'GC',
+            'GG',
+            'GT',
+            'TA',
+            'TC',
+            'TG',
+            'TT'
+]
+    
+        assert enumerate_k_mers(['A', 'C', 'G', 'T'], 2) == answer
+
+    def test_enumerate_k_mers_empty(self):
+        assert enumerate_k_mers(['A', 'C'], 0) == ['']
+
+    def test_build_adjacency_list(self):
+        assert build_adjacency_list([1,2], [(1, 2)]) == {1: set([2]), 2: set([1])}
+
+    def test_find_component(self):
+        assert set(find_component(2, {2: set([5, 1]), 1: set([2, 5]), 5: set([2, 1]), 10: set([11]), 11:set([10])})) == set([1, 5, 2 ])

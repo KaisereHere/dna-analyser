@@ -1,6 +1,6 @@
 import math
 
-
+from functools import lru_cache
 # RNA codon to amino acid table
 rna_codon_table = {
     'UUU': 'F','UUC': 'F',
@@ -526,3 +526,125 @@ def edit_distance(sequence1, sequence2):
                 shortest_path[index1][index2] = min(shortest_path[index1+1][index2], shortest_path[index1][index2+1], shortest_path[index1+1][index2+1]) + 1 
         
     return shortest_path[0][0] 
+
+
+
+def overlapping_sequences(fasta_dict, k=3):
+    '''Aligns sequences based on their overlapping tails / noses of the k-size
+        Complexity: O(n)
+
+        Args: (dict) fasta_dict: DNA sequences, (int) k: size of the overlapping part
+
+        Returns: (set) overlapping sequences, if the empty dict provided - returns empty set
+
+        Raises: ValueError if K > len(sequence)
+    '''
+    prefixes = {}
+    ordered = []
+
+    for name, sequence in fasta_dict.items():
+        if k > len(sequence):
+            raise ValueError('Sequence can not be shorter than an size of overlapping')
+        prefix = sequence[:k]
+
+        if prefix not in prefixes:
+            prefixes[prefix] = []
+
+        prefixes[prefix].append(name)
+
+    for name, sequence in fasta_dict.items():
+
+        suffix = sequence[-k:] 
+        if suffix in prefixes:
+
+            for candidate in prefixes[suffix]:
+
+                if candidate != name:
+                    ordered.append((name, candidate))
+
+    return set(ordered)
+
+
+def enumerate_k_mers(alphabet, n):
+
+    '''Calculates all possible n-sized strings which can be made of the given symbols.
+        Complexity: O(len(alphabet)^n)
+
+        Args: alphabet(list): ordered symbols, n(int): size of the strings
+
+        Returns: (list) of stings
+
+    '''
+    tails = ['']
+
+    for _ in range(n):
+        res = []
+
+        for symbol in alphabet:
+            for tail in tails:
+                res.append(symbol + tail)
+
+        tails = res
+
+    return tails
+
+def build_adjacency_list(vertices, edges):
+    '''Сreates an adjacency list for the given graph
+
+        Args: vertices(list): nodes of the graph, edges(list): connections
+
+        Returns: (dict)adjacency list
+    '''
+    adj = {}
+    for vertex in vertices:
+        adj[vertex] = set()
+
+    for u,v in edges:
+        adj[u].add(v)
+        adj[v].add(u)
+
+    return adj
+
+def find_component(vertex, adj_list, visited=None):
+    '''Finds the component to which the node belongs
+
+        Args: vertex: node, hash_table(dict): adjecency list, visited(opt. list): all visited nodes
+
+        Returns: list(component)
+    '''
+    if visited==None:
+        visited=[]
+
+    component = []
+    component.append(vertex)
+    visited.append(vertex)
+
+    for element in adj_list[vertex]:
+        if element not in visited:
+            component.extend(find_component(element, adj_list, visited))
+
+    return component
+
+
+
+def find_components(vertices, edges, adj_list=None):
+    '''Finds all components of the given graph
+
+        Args: vertices(list): nodes of the graph, edges(list): connections of the graph, hash_table(dict opt.): adjecency list for the graph
+
+        Returns: (list) components 
+    '''
+    if adj_list==None:
+        adj_list = build_adjacency_list(vertices, edges)
+
+    components = []
+    known_components = set()
+
+    for vertex in vertices:
+        if vertex not in known_components:
+            component = find_component(vertex, adj_list)
+            components.append(component)
+            known_components.update(component)
+
+
+    return components
