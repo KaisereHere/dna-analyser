@@ -51,15 +51,22 @@ monoisotopic_mass_table = {
 }
 
 def count_nucleotides(strand):
+    '''Calculates the amount of the nucleotides in a DNA or RNA sequence.
 
-    '''Calculates the amount of the nucleotides in a DNA sequence.
+       Args: strand(str): DNA or RNA sequence 
 
-    Args: strand(str): DNA sequence 
-
-    Returns: Dict with amounts of the nucleotides {A: int, C: int, G: int, T: int} 
+       Returns: Dict with amounts of the nucleotides {A: int, C: int, G: int, T or U: int} 
     '''
-    counted = {'A':0, 'C':0, 'G':0, 'T':0}
-    for nucleotide in strand.upper():
+
+    strand = strand.upper()
+
+    counted = {'A':0, 'C':0, 'G':0}
+    if 'T' in strand:
+        counted['T'] = 0
+    if 'U' in strand:
+        counted['U'] = 0
+        
+    for nucleotide in strand:
         if nucleotide in counted:
             counted[nucleotide] += 1
     return counted

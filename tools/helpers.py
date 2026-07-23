@@ -23,6 +23,7 @@ def get_protein_uniprot(id):
     return res.text
 
 def parse_template_salt(template):
+
     _normal = 1
     _or = 2
     _except = 3
@@ -87,3 +88,73 @@ def parse_template_salt(template):
         new = []
             
     return variants
+
+def _uni_prot_metadata_parse(full_name):
+    '''Extracts all meta data from the UniProt fasta name
+
+       Args: (str) full_name: fasta name
+
+       Returns: (dict) meta data
+    '''
+    object_data = {}
+
+    meta_data = full_name.split()
+    source_accession_name = meta_data[0].split('|')
+
+    object_data['record_source'] = source_accession_name[0]
+    object_data['accession'] = source_accession_name[1]
+    object_data['entry_name'] = source_accession_name[2]
+
+    rest = ' '.join(meta_data[1:])
+
+    mode = -1
+    object_data['ox'] = ''
+    object_data['gn'] = ''
+    object_data['name'] = ''
+    object_data['os'] = ''
+
+    for index, symbol in enumerate(rest):
+
+        if mode == -1:
+            object_data['name'] += symbol
+
+
+        if mode == 1:
+            
+            if symbol == " ":
+                mode = 0
+                continue
+
+            object_data['ox'] += symbol
+
+        if mode == 2:
+            if symbol == " ":
+                mode = 0
+                continue
+
+            object_data['gn'] += symbol
+
+        if mode == 3:
+            object_data['os'] += symbol
+                
+        if symbol == '=':
+            service = rest[index-2:index]
+
+            if service == 'OS':
+                mode = 3
+                object_data['name'] = object_data['name'][:index-3]
+
+            if service == 'OX':
+                mode = 1
+                object_data['os'] = object_data['os'][:-4]
+
+            if service == 'GN':
+                mode = 2
+
+            if service == "PE":
+                object_data['pv'] = rest[index+1] 
+
+            if service == "SV":
+                object_data['sv'] = rest[index+1] 
+
+    return object_data
