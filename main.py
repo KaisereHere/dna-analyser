@@ -1,19 +1,11 @@
-from analyse.sequence import read_fasta, find_components
-from tools.helpers import read_file
-import graphviz
+from analyse.sequence import read_fasta, find_motif_regex, find_motif, _get_motif_profile
+from tools.helpers import read_file, get_protein_uniprot, parse_template_salt
+import time
 
 def main():
-    data = read_file('data/rosalind_tree.txt').split('\n')
-    
-    edges = []
-    n_amount = data[0]
-    for elem in data[1:]:
-        edges.append([int(n) for n in elem.split(' ')])
+    res = _get_motif_profile('N{P}[ST]{P}')
+    print(res)
 
 
-    ns = [n for n in range(1, int(n_amount)+1)]
-
-    print(len(find_components(ns, edges))-1)
-
-if __name__ == "__main__":
+if __name__ ==  '__main__':
     main()

@@ -56,7 +56,7 @@ def count_nucleotides(strand):
 
     Args: strand(str): DNA sequence 
 
-    s: Dict with amounts of the nucleotides {A: int, C: int, G: int, T: int} 
+    Returns: Dict with amounts of the nucleotides {A: int, C: int, G: int, T: int} 
     '''
     counted = {'A':0, 'C':0, 'G':0, 'T':0}
     for nucleotide in strand.upper():
@@ -197,7 +197,7 @@ def gc_sliding_window(sequence, window_size):
     gc_list = []
 
     if window_size > len(sequence) or window_size <= 0:
-        raise IndexError('The window size is larger than a length of the sequence or equal 0')
+        raise ValueError('The window size is larger than a length of the sequence or equal 0')
     
     for nucleotide_number in range(0, len(sequence)-window_size+1):
         gc_list.append(calculate_gc_content(sequence[nucleotide_number:nucleotide_number+window_size]))
@@ -589,12 +589,14 @@ def enumerate_k_mers(alphabet, n):
     return tails
 
 def build_adjacency_list(vertices, edges):
-    '''Сreates an adjacency list for the given graph
+    '''Creates an adjacency list for the given graph
 
         Args: vertices(list): nodes of the graph, edges(list): connections
 
         Returns: (dict)adjacency list
     '''
+
+
     adj = {}
     for vertex in vertices:
         adj[vertex] = set()
@@ -605,32 +607,38 @@ def build_adjacency_list(vertices, edges):
 
     return adj
 
-def find_component(vertex, adj_list, visited=None):
-    '''Finds the component to which the node belongs
 
-        Args: vertex: node, hash_table(dict): adjecency list, visited(opt. list): all visited nodes
+def find_component(vertex, adj_list):
+    '''Finds the component to which the node belongs.
+
+        Args: vertex: node, adj_list(dict): adjecency list
 
         Returns: list(component)
     '''
-    if visited==None:
-        visited=[]
+    if not adj_list:
+        return []
+    
+    stack = [vertex]
+    component = [vertex]
+    visited = set([vertex])
 
-    component = []
-    component.append(vertex)
-    visited.append(vertex)
+    while stack:
 
-    for element in adj_list[vertex]:
-        if element not in visited:
-            component.extend(find_component(element, adj_list, visited))
+        current = stack.pop()
+        for neighbor in adj_list[current]:
+
+            if neighbor not in visited:
+                visited.add(neighbor)
+                stack.append(neighbor)
+                component.append(neighbor)
 
     return component
-
 
 
 def find_components(vertices, edges, adj_list=None):
     '''Finds all components of the given graph
 
-        Args: vertices(list): nodes of the graph, edges(list): connections of the graph, hash_table(dict opt.): adjecency list for the graph
+        Args: vertices(list): nodes of the graph, edges(list): connections of the graph, adj_list(dict opt.): adjecency list for the graph
 
         Returns: (list) components 
     '''
@@ -648,3 +656,258 @@ def find_components(vertices, edges, adj_list=None):
 
 
     return components
+
+
+def k_mer_sliding_window(sequence, k_mer_size):
+    '''Examines the amount of k-mers which DNA sequence contains
+
+        Args: sequence(str): DNA sequence, k_mer(int): the size of k-mer
+
+        Returns: lexicographically sorted dict
+
+        Raises: ValueError if k-mer is bigger than the length of the sequence 
+    '''
+    
+    if k_mer_size > len(sequence) or k_mer_size <= 0:
+        raise ValueError('The window size is larger than a length of the sequence or equal 0')
+    
+    res = {}
+    possible_strings = enumerate_k_mers(['A', 'C', 'G', 'T'], k_mer_size)
+
+    for string in possible_strings:
+        res[string] = 0
+    
+    for nucleotide_number in range(0, len(sequence)-k_mer_size+1):
+        res[sequence[nucleotide_number:nucleotide_number+k_mer_size]] += 1
+
+    return res
+
+def orientated_adj_list(edges, fasta):
+    '''Creates the adjacency list for the orientated graphs in order to recreate the path for
+    reconstruction of the superstring
+
+    Args: edges(list): the given edges, fasta(dict): the given sequences
+
+    Returns: (dict) adjacency list]
+    '''
+    path = {}
+
+    for name in fasta.keys():
+        path[name] = []
+
+    for vertex1, vertex2 in edges:
+        path[vertex1].append(vertex2)
+
+    return path
+
+def find_first_vertex(edges, fasta):
+    '''Finds the first vertex in the ordered graph.
+
+        Args: (list) edges: the given edges, fasta(dict): sequences
+
+        Returns: (str) the first vertex' name 
+    '''
+    in_out = {}
+    for name in fasta.keys():
+        in_out[name] = [0, 0]
+
+    for vertex1, vertex2 in edges:
+        in_out[vertex1][1] += 1
+        in_out[vertex2][0] += 1
+
+    for vertex, values in in_out.items():
+        if values[0] == 0:
+            return vertex
+         
+    
+def assembly_DNA(fasta):
+    '''The OLC algorithm unites the given reads (overlapping sequences) into a so called superstring.
+    
+        Args: fasta(dict): sequences
+
+        Returns: (str) superstring
+
+        Raises: ValueError if less than 2 fasta sequences are provided or if the superstring can not be found 
+    '''
+    if len(fasta) < 2:
+        raise ValueError('There are supposed to be at least 2 sequences')
+    
+    assembly = ''
+
+    min_sequence_length = len(min(fasta.values(), key=lambda x: len(x)))
+    
+    edges = set()
+    for k in range(min_sequence_length, min_sequence_length//2, -1):
+        edges.update(overlapping_sequences(fasta, k))
+        if len(edges) == len(fasta)-1:
+            break
+    
+    path = orientated_adj_list(edges, fasta)
+    current = find_first_vertex(edges, fasta)
+
+
+    while True:
+        if not path[current]:
+            
+            assembly += fasta[current]
+            return assembly
+    
+        overlap_found = False
+
+        max_k = len(min([fasta[current], fasta[path[current][0]]], key=lambda x: len(x)))
+        for k in range(max_k, max_k//2, -1):
+
+            overlap = overlapping_sequences({current: fasta[current], path[current][0]:fasta[path[current][0]]}, k)
+            if overlap:
+
+                overlap_found = True
+                assembly += fasta[current][:-k]
+                current = path[current][0]
+                break
+                
+        if overlap_found == False:
+            raise ValueError('Overlap can not be found')
+        
+
+def get_reversed_translations():
+    reversed_translations = {}
+
+    for sequence, amino_acid in rna_codon_table.items():
+        if amino_acid not in reversed_translations:
+            reversed_translations[amino_acid] = []
+
+        reversed_translations[amino_acid].append(sequence)
+
+    return reversed_translations
+
+reversed_translations = get_reversed_translations()
+
+def inferring_mRNA_possablilities(protein):
+    '''Counts the modulo of the general amount of the possible RNA sequences,
+        that can have coded the given protein
+
+        Args: protein(str): the given protein
+
+        Returns: the modulo of the general amount  
+    '''
+    result = 1
+
+    result *= len(reversed_translations['Stop'])
+    for amino_acid in protein:
+        result = (result * len(reversed_translations[amino_acid])) % 1000000
+
+    return result   
+
+
+
+def de_bruijn(S):
+    '''Assembles the de Bruijn graphs from the given reads
+
+       Args: S(list): the given reads
+
+       Returns: (set) adjecency list 
+    '''
+    S = set(S)
+
+    src = [reversed_complement(read) for read in S]
+    edges = S | set(src)
+
+    res = []
+
+    for edge in edges:
+        prefix = edge[:-1]
+        suffix = edge[1:]
+        res.append((prefix, suffix))
+
+    return set(res)
+
+amino_acids_one_letter = [
+    'A', 'R', 'N', 'D', 'C', 
+    'Q', 'E', 'G', 'H', 'I', 
+    'L', 'K', 'M', 'F', 'P', 
+    'S', 'T', 'W', 'Y', 'V'
+]
+
+def _get_motif_profile(motif):
+    '''Parses the protein motif expression and creates a dictinary (profile) with all amino acids which can occur on the spots
+
+       Args: (str) motif: motif expression
+
+       Returns: (dict) profile
+    '''
+
+    _normal = 1
+    _or = 2
+    _except = 3
+
+    _modus = _normal
+    
+    profile = {}
+
+    counter = 0
+    excepts = []
+
+    for symbol in motif:
+        if symbol == '{':
+            _modus = _except
+            continue
+            
+        if symbol == '}':
+            _modus = _normal
+            for amino_acid in amino_acids_one_letter:
+                if amino_acid not in excepts:
+                    profile[counter].append(amino_acid)
+
+            excepts = []
+            counter += 1
+            continue
+
+        if symbol == '[':
+            _modus = _or
+            continue
+
+        if symbol == ']':
+            _modus = _normal
+            counter += 1
+            continue
+
+        if _modus == _normal:
+            profile[counter] = [symbol]
+            counter += 1
+            continue
+
+        if _modus == _or:
+            if counter not in profile:
+                profile[counter] = []
+            
+            profile[counter].append(symbol)
+            continue
+
+        if _modus == _except:
+            if counter not in profile:
+                profile[counter] = []
+
+            excepts.append(symbol)
+
+    return profile
+
+def find_motif_regex(profile, protein):
+    '''Find all spots in the protein sequence, where the given motif occurs.
+     
+       Args: profile(dict): parsed motif expression by _get_motif_profile(), protein(str): sequence
+
+       Returns: (list) indices
+    '''
+    indices = []
+    for amino_acid_number in range(0, len(protein) - len(profile)+1):
+        matched = True
+
+        for index, symbol in enumerate(protein[amino_acid_number:amino_acid_number+len(profile)]):
+            if symbol not in profile[index]: 
+                matched = False
+                break
+
+        if matched:
+            indices.append(amino_acid_number)
+
+    return indices

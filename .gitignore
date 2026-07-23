@@ -7,3 +7,6 @@ fibbonacci.py
 data/
 m.txt
 doctest-output/
+algorithms/
+res.txt
+math_tasks.py

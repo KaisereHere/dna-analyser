@@ -2,8 +2,8 @@ import pytest
 
 from analyse.sequence import reversed_complement, transcribe, count_nucleotides, read_fasta, calculate_gc_content, calculate_hamming_distance
 from analyse.sequence import find_motif, translate, gc_sliding_window, dominant_probability, find_monoisotopic_mass, strand_profile, consensus_strand
-from analyse.sequence import open_read_frame, rna_splicing, dominant_offspring, find_shared_motif, independent_alleles, find_component
-
+from analyse.sequence import open_read_frame, rna_splicing, dominant_offspring, find_shared_motif, independent_alleles, find_component, find_components
+from analyse.sequence import k_mer_sliding_window, assembly_DNA, inferring_mRNA_possablilities, de_bruijn, _get_motif_profile
 from analyse.sequence import spliced_motif, shared_spliced_motif, edit_distance, overlapping_sequences, enumerate_k_mers, build_adjacency_list
 from tools.helpers import read_file
 
@@ -99,11 +99,11 @@ class TestSequence:
             assert int(gc) == int(gc_test)
         
     def test_gc_window_too_large(self):
-        with pytest.raises(IndexError):
+        with pytest.raises(ValueError):
             gc_sliding_window('CCG', 5)
 
     def test_gc_window_zero(self):
-        with pytest.raises(IndexError):
+        with pytest.raises(ValueError):
             gc_sliding_window('CCG', 0)
 
 
@@ -305,5 +305,76 @@ class TestSequence:
     def test_build_adjacency_list(self):
         assert build_adjacency_list([1,2], [(1, 2)]) == {1: set([2]), 2: set([1])}
 
+    def test_build_adjacency_list_isolated_vertex(self):
+        assert build_adjacency_list([1], []) == {1: set()}
+
     def test_find_component(self):
         assert set(find_component(2, {2: set([5, 1]), 1: set([2, 5]), 5: set([2, 1]), 10: set([11]), 11:set([10])})) == set([1, 5, 2 ])
+
+    def test_find_component_empty(self):
+        assert find_component(1, {}) == []
+
+    def test_find_components(self):
+        assert find_components([1, 2], [(1, 2)]) in ([[1, 2]], [[2, 1]])
+
+    def test_k_mer_sliding_window(self):
+        seq = 'CTTCGAAAGTTTGGGCCGAGTCTTACAGTCGGTCTTGAAGCAAAGTAACGAACTCCACGGCCCTGACTACCGAACCAGTTGTGAGTACTCAACTGGGTGAGAGTGCAGTCCCTATTGAGTTTCCGAGACTCACCGGGATTTTCGATCCAGCCTCAGTCCAGTCTTGTGGCCAACTCACCAAATGACGTTGGAATATCCCTGTCTAGCTCACGCAGTACTTAGTAAGAGGTCGCTGCAGCGGGGCAAGGAGATCGGAAAATGTGCTCTATATGCGACTAAAGCTCCTAACTTACACGTAGACTTGCCCGTGTTAAAAACTCGGCTCACATGCTGTCTGCGGCTGGCTGTATACAGTATCTACCTAATACCCTTCAGTTCGCCGCACAAAAGCTGGGAGTTACCGCGGAAATCACAG'
+        res ={'AAAA': 4, 'AAAC': 1, 'AAAG': 4, 'AAAT': 3, 'AACA': 0, 'AACC': 1, 'AACG': 1, 'AACT': 5, 'AAGA': 1, 'AAGC': 3, 'AAGG': 1, 'AAGT': 2, 'AATA': 2, 'AATC': 1, 'AATG': 2, 'AATT': 0, 'ACAA': 1, 'ACAC': 1, 'ACAG':3, 'ACAT': 1, 'ACCA': 2, 'ACCC': 1, 'ACCG': 3, 'ACCT': 1, 'ACGA': 1, 'ACGC': 1, 'ACGG': 1, 'ACGT': 2, 'ACTA': 2, 'ACTC': 5, 'ACTG': 1, 'ACTT': 3, 'AGAA': 0, 'AGAC': 2, 'AGAG': 2, 'AGAT': 1, 'AGCA': 1, 'AGCC': 1, 'AGCG': 1, 'AGCT': 3, 'AGGA': 1, 'AGGC': 0, 'AGGG': 0, 'AGGT': 1, 'AGTA': 5, 'AGTC': 5, 'AGTG': 1, 'AGTT': 5, 'ATAA': 0, 'ATAC': 2, 'ATAG': 0, 'ATAT': 2, 'ATCA': 1, 'ATCC': 2, 'ATCG': 1, 'ATCT': 1, 'ATGA': 1, 'ATGC': 2, 'ATGG': 0, 'ATGT': 1, 'ATTA': 0, 'ATTC': 0, 'ATTG': 1, 'ATTT': 1, 'CAAA': 3, 'CAAC': 2, 'CAAG': 1, 'CAAT': 0, 'CACA': 3, 'CACC': 2, 'CACG': 3, 'CACT': 0, 'CAGA': 0, 'CAGC': 2, 'CAGG': 0, 'CAGT': 8, 'CATA': 0, 'CATC': 0, 'CATG': 1, 'CATT': 0, 'CCAA': 2, 'CCAC': 1, 'CCAG': 3, 'CCAT': 0, 'CCCA': 0, 'CCCC': 0, 'CCCG': 1, 'CCCT': 4, 'CCGA': 3, 'CCGC': 2, 'CCGG': 1, 'CCGT': 1, 'CCTA': 3, 'CCTC': 1,'CCTG': 2, 'CCTT': 1, 'CGAA': 3, 'CGAC': 1, 'CGAG': 2, 'CGAT': 1, 'CGCA': 2, 'CGCC': 1, 'CGCG': 1, 'CGCT': 1, 'CGGA': 2, 'CGGC': 3, 'CGGG': 2, 'CGGT': 1, 'CGTA': 1, 'CGTC': 0, 'CGTG': 1, 'CGTT': 1, 'CTAA': 3, 'CTAC': 2, 'CTAG': 1, 'CTAT': 2, 'CTCA': 6, 'CTCC': 2, 'CTCG': 1, 'CTCT': 1, 'CTGA': 1, 'CTGC': 2, 'CTGG': 3, 'CTGT': 3, 'CTTA': 3, 'CTTC': 2, 'CTTG': 3, 'CTTT': 0, 'GAAA': 3, 'GAAC': 2, 'GAAG': 1, 'GAAT': 1, 'GACA': 0, 'GACC': 0, 'GACG': 1, 'GACT': 4, 'GAGA': 3, 'GAGC': 0, 'GAGG': 1, 'GAGT': 5, 'GATA': 0, 'GATC': 2, 'GATG': 0, 'GATT': 1, 'GCAA': 2, 'GCAC': 1, 'GCAG': 3, 'GCAT': 0, 'GCCA': 1, 'GCCC': 2, 'GCCG': 2, 'GCCT': 1, 'GCGA': 1, 'GCGC': 0, 'GCGG': 3, 'GCGT': 0, 'GCTA': 0, 'GCTC': 4, 'GCTG': 5, 'GCTT': 0, 'GGAA': 3, 'GGAC': 0, 'GGAG': 2, 'GGAT': 1, 'GGCA': 1, 'GGCC': 3, 'GGCG': 0, 'GGCT': 3, 'GGGA': 2, 'GGGC': 2, 'GGGG': 1, 'GGGT': 1, 'GGTA': 0, 'GGTC': 2, 'GGTG': 1, 'GGTT': 0, 'GTAA': 2, 'GTAC': 2, 'GTAG': 1, 'GTAT': 2, 'GTCA': 0, 'GTCC': 2, 'GTCG': 2, 'GTCT': 5, 'GTGA': 2, 'GTGC': 2, 'GTGG': 1, 'GTGT': 1, 'GTTA': 2, 'GTTC': 1, 'GTTG': 2, 'GTTT': 2, 'TAAA': 2, 'TAAC': 2, 'TAAG': 1, 'TAAT': 1, 'TACA': 3, 'TACC': 4, 'TACG': 0, 'TACT': 2, 'TAGA': 1, 'TAGC': 1, 'TAGG': 0, 'TAGT': 1, 'TATA': 2, 'TATC': 2, 'TATG': 1, 'TATT': 1, 'TCAA': 1, 'TCAC': 5, 'TCAG': 2, 'TCAT': 0, 'TCCA': 3, 'TCCC': 2, 'TCCG': 1, 'TCCT': 1, 'TCGA': 2, 'TCGC': 2, 'TCGG': 3, 'TCGT': 0, 'TCTA': 3, 'TCTC': 0, 'TCTG': 1, 'TCTT': 3, 'TGAA': 1, 'TGAC':2, 'TGAG': 3, 'TGAT': 0, 'TGCA': 2, 'TGCC': 1, 'TGCG': 2, 'TGCT': 2, 'TGGA': 1, 'TGGC': 2, 'TGGG': 3, 'TGGT': 0, 'TGTA': 1, 'TGTC': 2, 'TGTG': 3, 'TGTT': 1, 'TTAA': 1, 'TTAC': 3, 'TTAG': 1, 'TTAT': 0, 'TTCA': 1, 'TTCC': 1, 'TTCG': 3, 'TTCT': 0, 'TTGA': 2, 'TTGC': 1, 'TTGG': 2, 'TTGT': 2, 'TTTA': 0, 'TTTC': 2, 'TTTG': 1, 'TTTT': 1} 
+        assert k_mer_sliding_window(seq, 4) == res
+
+
+    def test_k_mer_sliding_window_index_error(self):
+        with pytest.raises(ValueError): 
+            k_mer_sliding_window('A',2)
+
+    
+    def test_k_mer_sliding_window_zero(self):
+        with pytest.raises(ValueError):
+            k_mer_sliding_window('CCG', 0)
+
+    def test_assembly_DNA(self):
+        assert assembly_DNA({'Rosalind_56': 'ATTAGACCTG', 'Rosalind_57': 'CCTGCCGGAA', 'Rosalind_58': 'AGACCTGCCG', 'Rosalind_59': 'GCCGGAATAC'}) == 'ATTAGACCTGCCGGAATAC'
+    
+    def test_inferring_mRNA_possabilities(self):
+        assert inferring_mRNA_possablilities('MA') == 12
+
+    def test_inferring_mRNA_possabilities_zero(self):
+        assert inferring_mRNA_possablilities('') == 3
+
+    def test_de_bruijn(self):
+        res = set([
+            ('ATC', 'TCA'),
+            ('ATG', 'TGA'),
+            ('ATG', 'TGC'), 
+            ('CAT', 'ATC'),
+            ('CAT', 'ATG'),
+            ('GAT', 'ATG'),
+            ('GCA', 'CAT'),
+            ('TCA', 'CAT'),
+            ('TGA', 'GAT')
+])
+        
+        inp = [
+        'TGAT',
+        'CATG',
+        'TCAT',
+        'ATGC',
+        'CATC',
+        'CATC'
+]
+        assert de_bruijn(inp) == res
+
+    def test_de_bruijn_empty(self):
+        assert de_bruijn([]) == set()
+
+    def test_de_bruijn_single_symbol(self):
+        assert de_bruijn(['A']) == set([('', '')])
+
+    def test__get_motif_profile(self):  
+        res = {0: ['N'], 1: ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'S', 'T', 'W', 'Y', 'V'], 2: ['S', 'T'], 3: ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'S', 'T', 'W', 'Y', 'V']}
+        assert _get_motif_profile('N{P}[ST]{P}') == res
+
+    def test__get_motif_profile_empty(self):
+        assert _get_motif_profile('') == {}
+
+    

@@ -1,4 +1,5 @@
-import math 
+import math
+from helpers import read_file
 
 def mortal_fib(n, k):
     age = [0] * (k)
@@ -34,19 +35,46 @@ def permutations(numbers):
             res.append(new)
         
     return res
-    
+
+def subsets(elements):
+    res = [[]]
+    for elem in elements:
+        new = []
+        for elem_old in res:
+            new.append(elem_old + [elem])
+        res.extend(new)
+
+    return res 
+
+def set_operations(n, set1, set2):
+    union = set1 | set2
+
+    ns = set([i+1 for i in range(n)])
+
+    intersection = set1 & set2
+
+
+    difference12 = set1 - set2
+    difference21 = set2 - set1
+
+    set1_complement = set1 ^ ns
+    set2_complement = ns ^ set2 
+
+    return [
+        union,
+        intersection,
+        difference12,
+        difference21,
+        set1_complement, 
+        set2_complement 
+    ]
+
+def main():
+    n = 10
+    set1 = {1, 2, 3, 4, 5}
+    set2 = {2, 8, 5, 10}
+
+    print(set_operations(n,set1,set2))
+
 if __name__ == '__main__':
-
-    numbers = [1,2,3,4]
-
-    res = permutations(numbers)
-
-    with open('m.txt', 'w') as file:
-        file.write('\n')
-
-        file.write(str(len(res)))
-        
-        file.write('\n')
-        for perm in res:
-            file.write(' '.join(map(str,perm)))
-            file.write('\n')
+    main() 
