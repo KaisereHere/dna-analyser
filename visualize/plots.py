@@ -2,7 +2,7 @@
 from pathlib import Path
 from matplotlib import pyplot as plt
 
-def plot_gc_profile(gc_values, sequence_name=""):
+def plot_gc_profile(gc_values, sequence_name="", save=True, show=False):
 
     plt.figure()
     plt.plot(range(len(gc_values)), gc_values)
@@ -14,6 +14,8 @@ def plot_gc_profile(gc_values, sequence_name=""):
     plt.tight_layout()
 
     Path("test_plots/").mkdir(parents=True, exist_ok=True)
-    
-    plt.savefig('test_plots/gc_profile.png')
+    if save:
+        plt.savefig('test_plots/gc_profile.png')
+    if show:
+        pass
     plt.close()

@@ -3,17 +3,18 @@ import pytest
 from analyse.sequence import reversed_complement, transcribe, count_nucleotides, read_fasta, calculate_gc_content, calculate_hamming_distance
 from analyse.sequence import find_motif, translate, gc_sliding_window, dominant_probability, find_monoisotopic_mass, strand_profile, consensus_strand
 from analyse.sequence import open_read_frame, rna_splicing, dominant_offspring, find_shared_motif, independent_alleles, find_component, find_components
-from analyse.sequence import k_mer_sliding_window, assembly_DNA, inferring_mRNA_possablilities, de_bruijn, _get_motif_profile
+from analyse.sequence import k_mer_sliding_window, assembly_DNA, inferring_mRNA_possablilities, de_bruijn
 from analyse.sequence import spliced_motif, shared_spliced_motif, edit_distance, overlapping_sequences, enumerate_k_mers, build_adjacency_list
+from analyse.sequence import transition_to_transversion_ratio, align
+
 from tools.helpers import read_file
 
 class TestSequence:
 
-    strand_test = 'AAAACCCGGT'
     fasta_test = '>fd3\nCT\nGA\n>fs3\nGTC'
 
     def test_reversed_completement(self):
-        assert 'ACCGGGTTTT' == reversed_complement(self.strand_test)
+        assert 'ACCGGGTTTT' == reversed_complement('AAAACCCGGT')
 
     def test_reversed_completement_empty(self):
         assert '' == reversed_complement('')
@@ -25,16 +26,22 @@ class TestSequence:
         assert transcribe('aaaacccggt') == 'AAAACCCGGU'
 
     def test_transcribe(self):
-        assert transcribe(self.strand_test) == 'AAAACCCGGU'
+        strand_test = 'AAAACCCGGT'
+        assert transcribe(strand_test) == 'AAAACCCGGU'
 
     def test_count_nucleotides_empty(self):  
-        assert count_nucleotides('') == {'A':0, 'C':0, 'G':0, 'T':0}
+        assert count_nucleotides('') == {'A':0, 'C':0, 'G':0, 'T':0, 'U':0}
 
     def test_count_nucleotides_random(self):  
-        assert count_nucleotides('dddppbbbb343433434f') == {'A':0, 'C':0, 'G':0, 'T':0}
+        assert count_nucleotides('dddppbbbb343433434f') == {'A':0, 'C':0, 'G':0, 'T':0, 'U':0}
 
     def test_count_nucleotides(self):  
-        assert count_nucleotides(self.strand_test) == {'A':4, 'C':3, 'G':2, 'T':1}
+        strand_test = 'AAAACCCGGT'
+        assert count_nucleotides(strand_test) == {'A':4, 'C':3, 'G':2, 'T':1, 'U':0}
+
+    def test_count_nucleotides_U(self):  
+        strand_test = 'AAAACCCGGU'
+        assert count_nucleotides(strand_test) == {'A':4, 'C':3, 'G':2, 'U':1, 'T':0}
 
     def test_read_file(self):
         test_bcode = '>Rosalind_6404\nCCTGCGGAAGATCGGCACTAGAATAGCCAGAACCGTTTCTCTGAGGCTTCCGGCCTTCCC\nTCCCACTAATAATTCTGAGG\n>Rosalind_5959\nCCATCGGTAGCGCATCCTTAGTCCAATTAAGTCCCTATCCAGGCGCTCCGCCGAAGGTCT\nATATCCATTTGTCAGCAGACACGC\n>Rosalind_0808\nCCACCCTCGTGGTATGGCTAGGCATTCAGGAACCGGAGAACGCTTCAGACCAGCCCGGAC\nTGGGAACCTGCGGGCAGTAGGTGGAAT'
@@ -370,11 +377,41 @@ class TestSequence:
     def test_de_bruijn_single_symbol(self):
         assert de_bruijn(['A']) == set([('', '')])
 
-    def test__get_motif_profile(self):  
-        res = {0: ['N'], 1: ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'S', 'T', 'W', 'Y', 'V'], 2: ['S', 'T'], 3: ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'S', 'T', 'W', 'Y', 'V']}
-        assert _get_motif_profile('N{P}[ST]{P}') == res
 
-    def test__get_motif_profile_empty(self):
-        assert _get_motif_profile('') == {}
+    def test_transition_to_transversion_ratio(self):
+        seq1 = 'GCAACGCACAACGAAAACCCTTAGGGACTGGATTATTTCGTGATCGTTGTAGTTATTGGAAGTACGGGCATCAACCCAGTT'
+        seq2 = 'TTATCTGACAAAGAAAGCCGTCAACGGCTGGATAATTTCGCGATCGTGCTGGTTACTGGCGGTACGAGTGTTCCTTTGGGT'
+        assert abs(transition_to_transversion_ratio(seq1, seq2)-1.21428571429) <= 0.00001   
+
+    def test_transition_to_transversion_ratio_diff_size(self):
+        with pytest.raises(ValueError):
+            transition_to_transversion_ratio('AA', 'A')
+
+    def test_transition_to_transversion_ratio_empty(self):
+        with pytest.raises(ValueError):
+            transition_to_transversion_ratio('', '') 
+
+    def test_transition_to_transversion_ratio_tranversion_zero(self):
+        assert transition_to_transversion_ratio('A', 'G') == float('inf') 
+
+    def test_transition_to_transversion_ratio_transition_zero(self):
+        assert transition_to_transversion_ratio('A', 'T') == 0
+
+    def test_transition_to_transversion_ratio_both_zero(self):
+        assert transition_to_transversion_ratio('A', 'A') == None   
+
+    def test_align(self):
+        assert align('PRETTY', 'PRTTEIN') == ('PRETTY-', 'PRTTEIN', 4)
+
+    def test_align_length(self):
+        res = align('PRETTY', 'PRTTEIN')
+        assert len(res[0]) == len(res[1])
+
+    def test_align_empty(self):
+        assert align('', '') == ('', '', 0)
+
+    def test_align_alignment_length(self):
+        res = align('PRTEEIN', 'PRETTY')
+        assert calculate_hamming_distance(res[0], res[1]) == edit_distance('PRTTEIN', 'PRETTY') == res[2]
 
     

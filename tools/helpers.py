@@ -89,72 +89,103 @@ def parse_template_salt(template):
             
     return variants
 
-def _uni_prot_metadata_parse(full_name):
+def convert_to_fasta(fasta_dict):
+
+    '''Converts fasta dictionary to a regular fasta format.
+
+       Args: (dict) fasta_dict: fasta dictionary
+
+       Returns: (str) converted to a fasta format
+
+       Raises: TypeError if fasta_dict has other format than dictionary, ValueError if fasta_dit is empty
+    '''
+    if not type(fasta_dict) is dict:
+        raise TypeError('Fasta has to be a dictionary')
+    
+    if not fasta_dict:
+        raise ValueError("Fasta dictionary can not be empty")
+
+    name = '>' + list(fasta_dict.keys())[0]
+    value = list(fasta_dict.values())[0]
+
+    return name + '\n' + str(value)
+
+
+def uni_prot_metadata_parse(full_name):
     '''Extracts all meta data from the UniProt fasta name
 
        Args: (str) full_name: fasta name
 
        Returns: (dict) meta data
     '''
+
+    if not full_name:
+        raise ValueError('The name has to be longer than 0')
+    
     object_data = {}
 
-    meta_data = full_name.split()
-    source_accession_name = meta_data[0].split('|')
+    try:
+        if full_name.startswith('>'):
+            full_name = full_name[1:]
+        meta_data = full_name.split()
+        source_accession_name = meta_data[0].split('|')
+    except IndexError:
+        print('The given string does not accord to the UniProt format')
+        raise
 
     object_data['record_source'] = source_accession_name[0]
     object_data['accession'] = source_accession_name[1]
     object_data['entry_name'] = source_accession_name[2]
+    object_data['SV'] = None
+    object_data['GN'] = None
+    object_data['name'] = ''
+    object_data['PE'] = None
+    object_data["OS"] = None
+    object_data["OX"] = None
 
     rest = ' '.join(meta_data[1:])
 
-    mode = -1
-    object_data['ox'] = ''
-    object_data['gn'] = ''
-    object_data['name'] = ''
-    object_data['os'] = ''
-
+    _name = 0
+    _values = 1
+    _name_end = 2
+    mode = _name
+    
+    key_name = ""
+    last_value = ''
     for index, symbol in enumerate(rest):
 
-        if mode == -1:
+        if mode == _name:
             object_data['name'] += symbol
 
+            if symbol == "=":     
+                mode = _name_end       
 
-        if mode == 1:
-            
-            if symbol == " ":
-                mode = 0
-                continue
+        if mode == _values or mode == _name_end: 
+            if symbol == "=":
+                if key_name:
+                    last_value = key_name
 
-            object_data['ox'] += symbol
+                key_name = ''
+                key_size = 0
+                for inner_symbol in rest[index-1::-1]:
 
-        if mode == 2:
-            if symbol == " ":
-                mode = 0
-                continue
+                    if inner_symbol == ' ':
+                        break
 
-            object_data['gn'] += symbol
+                    key_size += 1
+                    key_name += inner_symbol
 
-        if mode == 3:
-            object_data['os'] += symbol
-                
-        if symbol == '=':
-            service = rest[index-2:index]
+                if mode == _name_end:
+                    object_data['name'] = object_data['name'][:-key_size-2]
+                    mode = _values
+                        
+                key_name = key_name[::-1]
+                object_data[key_name] = ''
+                if last_value:
+                    object_data[last_value] = object_data[last_value][:-len(key_name)-1]
 
-            if service == 'OS':
-                mode = 3
-                object_data['name'] = object_data['name'][:index-3]
-
-            if service == 'OX':
-                mode = 1
-                object_data['os'] = object_data['os'][:-4]
-
-            if service == 'GN':
-                mode = 2
-
-            if service == "PE":
-                object_data['pv'] = rest[index+1] 
-
-            if service == "SV":
-                object_data['sv'] = rest[index+1] 
+            else:
+                if key_name:
+                    object_data[key_name] += symbol
 
     return object_data

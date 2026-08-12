@@ -1,4 +1,5 @@
 import math
+from copy import deepcopy
 
 from functools import lru_cache
 # RNA codon to amino acid table
@@ -60,12 +61,8 @@ def count_nucleotides(strand):
 
     strand = strand.upper()
 
-    counted = {'A':0, 'C':0, 'G':0}
-    if 'T' in strand:
-        counted['T'] = 0
-    if 'U' in strand:
-        counted['U'] = 0
-        
+    counted = {'A':0, 'C':0, 'G':0, 'T': 0, 'U': 0}
+
     for nucleotide in strand:
         if nucleotide in counted:
             counted[nucleotide] += 1
@@ -282,6 +279,7 @@ def strand_profile(strands):
     strand_size = len(next(iter(strands.values())))
     
     profile = {'A': [0] * strand_size,'G': [0] * strand_size, 'C': [0] * strand_size,'T': [0] * strand_size}
+
 
     for strand_name, sequence in strands.items():
         
@@ -835,68 +833,111 @@ amino_acids_one_letter = [
     'S', 'T', 'W', 'Y', 'V'
 ]
 
-def _get_motif_profile(motif):
-    '''Parses the protein motif expression and creates a dictinary (profile) with all amino acids which can occur on the spots
+def prosite_parse(motif):
+    '''Parses the protein motif expression and creates a list with dictinaries (profile) 
+       with all amino acids which can occur on the spots
 
        Args: (str) motif: motif expression
 
        Returns: (dict) profile
     '''
 
+    motif = motif.replace('-', '')
+
     _normal = 1
     _or = 2
     _except = 3
+    _repeat = 4
 
     _modus = _normal
     
-    profile = {}
+    profiles = [{}]
 
-    counter = 0
     excepts = []
 
     for symbol in motif:
+        if symbol == "(":
+            _modus = _repeat
+            repeats = '('
+            continue
+
+        if symbol == ")":
+            _modus = _normal
+            repeats += ')'
+            if not ',' in repeats:
+                for repeat in range(eval(repeats)-1):
+                    for profile in profiles:
+                        profile[len(profile)+1] = deepcopy(profile[len(profile)])
+                continue
+
+            new_profiles = []
+
+            for profile in profiles:
+                rng = eval(repeats)
+                rng = (rng[0], rng[1]+1)
+                for value in range(*rng):
+                    new = deepcopy(profile)
+                    for repeat in range(value):
+                            
+                        new[len(profile)+repeat] = deepcopy(profile[len(profile)])
+
+                    new_profiles.append(new)
+
+            profiles = new_profiles
+            continue
+
+        if symbol == "x":
+            for profile in profiles:
+                profile[len(profile)+1] = []
+                profile[len(profile)].extend(amino_acids_one_letter)
+            continue
+
         if symbol == '{':
             _modus = _except
             continue
             
         if symbol == '}':
             _modus = _normal
-            for amino_acid in amino_acids_one_letter:
-                if amino_acid not in excepts:
-                    profile[counter].append(amino_acid)
+            for profile in profiles:
+                if len(profile)+1 not in profile:
+                    profile[len(profile)+1] = []
+                for amino_acid in amino_acids_one_letter:
+                    if amino_acid not in excepts:
+                        profile[len(profile)].append(amino_acid)
 
             excepts = []
-            counter += 1
             continue
 
         if symbol == '[':
             _modus = _or
+            for profile in profiles: 
+                if len(profile)+1 not in profile:
+                    profile[len(profile)+1] = []
             continue
 
         if symbol == ']':
             _modus = _normal
-            counter += 1
             continue
 
         if _modus == _normal:
-            profile[counter] = [symbol]
-            counter += 1
+            for profile in profiles:
+                profile[len(profile)+1] = [symbol]
             continue
 
         if _modus == _or:
-            if counter not in profile:
-                profile[counter] = []
-            
-            profile[counter].append(symbol)
+            for profile in profiles:
+                profile[len(profile)].append(symbol)
             continue
 
         if _modus == _except:
-            if counter not in profile:
-                profile[counter] = []
-
             excepts.append(symbol)
+            continue
 
-    return profile
+        if _modus == _repeat:
+            repeats += symbol
+            continue
+
+    return profiles
 
 def find_motif_regex(profile, protein):
     '''Find all spots in the protein sequence, where the given motif occurs.
@@ -906,11 +947,12 @@ def find_motif_regex(profile, protein):
        Returns: (list) indices
     '''
     indices = []
-    for amino_acid_number in range(0, len(protein) - len(profile)+1):
+    for amino_acid_number in range(1, len(protein) - len(profile)+1):
         matched = True
 
         for index, symbol in enumerate(protein[amino_acid_number:amino_acid_number+len(profile)]):
-            if symbol not in profile[index]: 
+
+            if symbol not in profile[index+1]: 
                 matched = False
                 break
 
@@ -918,3 +960,119 @@ def find_motif_regex(profile, protein):
             indices.append(amino_acid_number)
 
     return indices
+
+def is_purine(nucleotide):
+    if nucleotide == 'G' or nucleotide == "A":
+        return True
+    
+def transition_to_transversion_ratio(seq1, seq2):
+    '''Calculates the ratio of transition to transversion mutation which occur in 2 sequences
+    
+       Args: seq1(str): DNA or RNA sequence, seq2(str): another DNA or RNA sequence
+
+       Returns: (float) ratio
+
+       Raises: ValueError if the sequences posses the different or zero length 
+    '''
+    transition = 0
+    transversion = 0
+
+    if len(seq1) != len(seq2):
+        raise ValueError('The sequences are not allowed to have a different  length')
+
+    if len(seq1) == 0:
+        raise ValueError('The sequences have to be longer than 0')
+
+    for index in range(len(seq1)):
+        symbol1 = seq1[index]
+        symbol2 = seq2[index]
+        if symbol1 != symbol2:
+            if is_purine(symbol1) != is_purine(symbol2):
+                transversion += 1
+
+            else:
+                transition += 1
+
+    if transversion == 0:
+        if transition == 0:
+            return None
+        
+        return float('inf')
+
+    return transition/transversion
+
+
+def align(seq1, seq2):
+    '''Provides the alignment for 2 given sequences and calculates the edit distance 
+
+       Args: seq1(str): sequence, seq2(str): another sequence
+
+       Returns: (tuple): (str) 1st sequence's alignment, (str) 2nd sequence's alignment, (int) edit distance
+    '''
+    alignment1 = ''
+    alignment2 = ''
+
+    dp = [[0 for _ in range(len(seq2)+1)] for _ in range(len(seq1)+1)]
+
+    length1 = len(seq1)
+    length2 = len(seq2)
+
+    for i in range(length1):
+        dp[i][length2] = length1 - i
+
+    for i in range(length2):
+        dp[length1][i] = length2 - i
+    
+    for i in range(length1-1, -1, -1):
+        for j in range(length2-1, -1, -1):
+
+            if seq1[i] == seq2[j]:
+                dp[i][j] = dp[i+1][j+1]
+
+            else:
+                dp[i][j] = min(dp[i+1][j], dp[i][j+1], dp[i+1][j+1]) + 1
+
+    i, j = 0, 0
+    distance = 0
+
+    while i < length1 or j < length2:
+
+    
+        if i == length1:
+            alignment1 += "-"
+            alignment2 += seq2[j]
+            j += 1
+            distance += 1
+            continue 
+
+        if j == length2:
+            alignment2 += "-"
+            alignment1 += seq1[i]
+            distance += 1
+            i += 1
+            continue 
+
+        smallest = min(dp[i+1][j], dp[i][j+1], dp[i+1][j+1])
+        if smallest == dp[i+1][j+1]:
+            alignment1 += seq1[i]
+            alignment2 += seq2[j]
+            if seq1[i] != seq2[j]:
+                distance += 1
+
+            i += 1
+            j += 1
+
+        else:
+            distance += 1
+
+            if smallest == dp[i+1][j]:
+                alignment1 += seq1[i]
+                alignment2 += "-"
+                i += 1 
+
+            elif smallest == dp[i][j + 1]:
+                alignment1 += "-"
+                alignment2 += seq2[j]
+                j += 1
+
+    return (alignment1, alignment2, distance)

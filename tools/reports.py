@@ -1,0 +1,34 @@
+from analyse.models import UniProtRecord
+from tools.helpers import get_protein_uniprot
+
+def get_info_protein(protein):
+
+    protein = UniProtRecord(get_protein_uniprot(protein))
+    print("=====================")
+    print("Protein summary")
+    print("=====================")
+
+    print('Uniprot metadata:\n')
+    print('Accession:', protein.accession)
+    print('Entry name:', protein.entry_name)
+    print("Gene name:", protein.gene_name)
+    print("Protein name:", protein.protein_name)
+    print("Organism:", protein.organism)
+    print("Sequence version:", protein.sequence_version)
+    print("Protein existence:", protein.protein_existence)
+
+    print("=====================")
+    print("General information:\n")    
+    print("Protein sequence:", protein.sequence.sequence[:10] + "... total length:", len(protein.sequence.sequence))
+    print("Monoisotopic mass:", protein.sequence.monoisotopic_mass)
+    print("=====================")
+    print('Motifs:\n')
+    glycosilation_sites = protein.sequence.find_motif(r'N-{P}-[ST]-{P}')
+    print("Potential N-glycosilation sites:", glycosilation_sites, "overall amount: ", len(glycosilation_sites))
+
+    phosphorylation_sites = protein.sequence.find_motif('[ST]-x(2)-[DE]')
+    print("Potential N-phosphorylation sites:", phosphorylation_sites, "overall amount: ", len(phosphorylation_sites))
+    print("=====================\n")
+
+    print('\n\n')
+
