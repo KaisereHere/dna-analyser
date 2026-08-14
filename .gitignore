@@ -6,6 +6,7 @@ __pycache__/
 fibbonacci.py
 data/
 m.txt
+test_plots/
 doctest-output/
 algorithms/
 res.txt

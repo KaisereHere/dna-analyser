@@ -3,7 +3,7 @@ from analyse.sequence import calculate_gc_content, count_nucleotides, transcribe
 from analyse.sequence import find_motif_regex, prosite_parse, open_read_frame
 from analyse.sequence import find_monoisotopic_mass, rna_splicing, edit_distance
 from analyse.sequence import strand_profile, consensus_strand, calculate_hamming_distance
-from analyse.sequence import align as _align
+from analyse.sequence import align as _align, assembly_DNA
 
 from tools.helpers import uni_prot_metadata_parse, convert_to_fasta
 from dataclasses import dataclass
@@ -104,6 +104,26 @@ class RNASequence(NucleicAcidSequence):
 
 @dataclass 
 class DNASequence(NucleicAcidSequence):
+
+    @classmethod
+    def assemble(cls, reads):
+        '''Assemles the original DNA sequence from the reads
+
+           Args: (list or dict with str or Sequence)
+
+           Returns: (Sequence) assembly 
+
+           Raises: ValueError if reads has a zero length
+        '''
+        if len(reads) == 0:
+            raise ValueError("Assembly is not possible: no reads found")
+        if isinstance(reads, list):
+            reads = dict(enumerate(reads))
+
+        if not isinstance((reads.values())[0], str):
+            reads = {index: read.sequence for index, read in reads.items()}
+
+        return cls(assembly_DNA(reads))
 
     @property
     def transcription(self):

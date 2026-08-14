@@ -2,20 +2,20 @@
 from pathlib import Path
 from matplotlib import pyplot as plt
 
-def plot_gc_profile(gc_values, sequence_name="", save=True, show=False):
-
+def sliding_window_plot(values, path='test_plots/', title='plot', save=True, show=False):
     plt.figure()
-    plt.plot(range(len(gc_values)), gc_values)
+    plt.plot(range(len(values)), values)
     plt.xlabel('Window index')
-    plt.ylabel('GC values')
-    plt.title(sequence_name)
+    plt.ylabel('Values')
+    plt.title(title)
     plt.grid(True)
-    plt.ylim(0, 100)      # GC% всегда 0-100
+    plt.ylim(0, 100)
     plt.tight_layout()
 
-    Path("test_plots/").mkdir(parents=True, exist_ok=True)
+    Path(path).mkdir(parents=True, exist_ok=True)
     if save:
-        plt.savefig('test_plots/gc_profile.png')
+        plt.savefig(f'{path}/{title}.png')
     if show:
-        pass
+        plt.show()
+
     plt.close()

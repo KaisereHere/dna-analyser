@@ -131,7 +131,7 @@ def calculate_gc_content(strand):
 def calculate_hamming_distance(strand1, strand2):
     '''Calculates hamming distance between two DNA sequences 
 
-        Args: strand1(str): DNA sequence , strand2(str): another DNA sequence 
+        Args: strand1(str): DNA, RNA or protein sequence , strand2(str): another sequence 
 
         Returns: (int) distance 
 
@@ -142,8 +142,8 @@ def calculate_hamming_distance(strand1, strand2):
     if len(strand1) != len(strand2):
       raise ValueError(f"Sequences must be equal length: {len(strand1)} vs {len(strand2)}")
     
-    for nucleotide1, nucleotide2 in zip(strand1, strand2):
-        if nucleotide1 != nucleotide2:
+    for symbol1, symbol2 in zip(strand1, strand2):
+        if symbol1 != symbol2:
             distance += 1
 
     return distance
@@ -1076,3 +1076,28 @@ def align(seq1, seq2):
                 j += 1
 
     return (alignment1, alignment2, distance)
+
+def identity_sliding_window(sequence1, sequence2, window_size):
+
+    '''Examines the local identity on the subsequence of the given DNA or RNA sequence 
+    
+        Args: sequence1(str): DNA, RNA or protein sequence, sequence2(str): another sequence, window_size(int): the size of the subsequences 
+
+        Returns: list with identity percentages 
+
+        Raises: IndexError if the window size is not appropriate 
+    '''
+    
+    identity_list = []
+    if window_size > len(sequence1) or window_size <= 0:
+        raise ValueError('The window size is larger than a length of the sequence or equal 0')
+    
+    for symbol_number in range(0, len(sequence1)-window_size+1):
+
+        subseq1 = sequence1[symbol_number:symbol_number+window_size]
+        subseq2 = sequence2[symbol_number:symbol_number+window_size]
+
+        identity = (window_size - calculate_hamming_distance(subseq1, subseq2)) / window_size * 100
+        identity_list.append(identity)
+
+    return identity_list

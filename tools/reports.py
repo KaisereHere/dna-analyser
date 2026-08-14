@@ -1,7 +1,7 @@
 from analyse.models import UniProtRecord
 from tools.helpers import get_protein_uniprot
 
-def get_info_protein(protein):
+def protein_report(protein):
 
     protein = UniProtRecord(get_protein_uniprot(protein))
     print("=====================")
@@ -30,5 +30,21 @@ def get_info_protein(protein):
     print("Potential N-phosphorylation sites:", phosphorylation_sites, "overall amount: ", len(phosphorylation_sites))
     print("=====================\n")
 
-    print('\n\n')
 
+def compare_2_proteins_report(protein1, protein2):
+    print("=====================")
+    print("Protein comparation")
+    print("=====================")
+    protein1 = UniProtRecord(get_protein_uniprot(protein1))
+    protein2 = UniProtRecord(get_protein_uniprot(protein2))
+
+    res = protein1.sequence.align(protein2.sequence)
+
+    print(f'{protein1.protein_name}\t {res[0].sequence}\n{protein2.protein_name} {res[1].sequence}')
+    edit_distance = protein1.sequence.edit_distance(protein2.sequence)
+    print(f'Edit distance:', edit_distance, "amino acids")
+
+    identity = len(res[0].sequence) - res[0].hamming_distance(res[1])  
+
+    print("Identity:", identity, "amino acids,", str(identity/len(res[0].sequence)*100), "%")
+    print("=====================")
